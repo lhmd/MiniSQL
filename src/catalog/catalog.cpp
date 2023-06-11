@@ -142,9 +142,9 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
 	tables_[table_id] = table_info;
 
 //	更新catalog_meta_page
-//	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
-//	catalog_meta_->SerializeTo(meta_page->GetData());
-//	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
+	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
+	catalog_meta_->SerializeTo(meta_page->GetData());
+	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
 
 	return DB_SUCCESS;
 }
@@ -205,9 +205,9 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
 	indexes_[index_id] = index_info;
 
 //	更新catalog_meta_page
-//	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
-//	catalog_meta_->SerializeTo(meta_page->GetData());
-//	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
+	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
+	catalog_meta_->SerializeTo(meta_page->GetData());
+	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
 
 	return DB_SUCCESS;
 }
@@ -243,6 +243,7 @@ dberr_t CatalogManager::DropTable(const string &table_name) {
 	table_names_.erase(table_name);
 	catalog_meta_->table_meta_pages_.erase(table_id);
 	buffer_pool_manager_->DeletePage(catalog_meta_->table_meta_pages_[table_id]);
+	tables_[table_id]->GetTableHeap()->FreeTableHeap();
 	tables_.erase(table_id);
 	return DB_SUCCESS;
 }
@@ -295,10 +296,10 @@ dberr_t CatalogManager::LoadTable(const table_id_t table_id, const page_id_t pag
 	tables_[table_id] = table_info;
 
 //	更新catalog_meta_page
-//	catalog_meta_->table_meta_pages_[table_id] = page_id;
-//	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
-//	catalog_meta_->SerializeTo(meta_page->GetData());
-//	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
+	catalog_meta_->table_meta_pages_[table_id] = page_id;
+	auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
+	catalog_meta_->SerializeTo(meta_page->GetData());
+	buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
 
 	return DB_SUCCESS;
 }

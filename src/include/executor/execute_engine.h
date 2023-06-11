@@ -77,7 +77,7 @@ class ExecuteEngine {
   std::unordered_map<std::string, DBStorageEngine *> dbs_; /** all opened databases */
   std::string current_db_;                                 /** current database */
 //  My Utils
-  static void printDatabaseTable(const std::string& TableName, const std::vector<std::string>& databases);
+  static void printDatabaseTable(const std::vector<std::string>& TableName, const std::vector<std::vector<std::string>>& vec);
 };
 
 #endif  // MINISQL_EXECUTE_ENGINE_H

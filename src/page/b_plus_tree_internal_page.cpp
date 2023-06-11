@@ -226,7 +226,8 @@ void InternalPage::MoveLastToFrontOf(InternalPage *recipient, GenericKey *middle
 	recipient->SetKeyAt(0, middle_key);
 	recipient->CopyFirstFrom(ValueAt(GetSize() - 1), buffer_pool_manager);
 	recipient->SetKeyAt(0, KeyAt(GetSize() - 1));
-	IncreaseSize(-1);
+//	IncreaseSize(-1);
+	Remove(GetSize() - 1);
 }
 
 /* Append an entry at the beginning.

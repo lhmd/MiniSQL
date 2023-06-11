@@ -284,7 +284,10 @@ dberr_t ExecuteEngine::ExecuteShowDatabases(pSyntaxNode ast, ExecuteContext *con
 	for(const auto& db : dbs_) {
 		databases.push_back(db.first);
 	}
-	printDatabaseTable("Database", databases);
+	std::vector<std::string> Names = {"Database"};
+	std::vector<std::vector<std::string>> data;
+	data.push_back(databases);
+	printDatabaseTable(Names, data);
 	return DB_SUCCESS;
 }
 
@@ -321,7 +324,10 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
 	for (const auto& table_info : table_infos) {
 		tables.emplace_back(table_info->GetTableName().c_str());
 	}
-	printDatabaseTable("Tables_in_" + current_db_, tables);
+	std::vector<std::string> Names = {"Tables_in_" + current_db_};
+	std::vector<std::vector<std::string>> data;
+	data.push_back(tables);
+	printDatabaseTable(Names, data);
 	return DB_SUCCESS;
 }
 
@@ -342,13 +348,8 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
 		std::cout << "Table already exists." << std::endl;
 		return DB_ALREADY_EXIST;
 	}
-	std::vector<Column> columns;
-	std::vector<Index> indexes;
-	pSyntaxNode column_list = ast->child_->next_;
-	pSyntaxNode column = column_list->child_;
-	while(column != nullptr) {
 
-	}
+
 }
 
 /**
@@ -436,43 +437,68 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
 /**
 * My Utils
 */
-void ExecuteEngine::printDatabaseTable(const std::string& TableName, const std::vector<std::string>& vec) {
+void ExecuteEngine::printDatabaseTable(const std::vector<std::string>& TableName, const std::vector<std::vector<std::string>>& vec) {
 	// 计算每列的最大宽度
-	int maxNameWidth = 0;
-	for (const std::string& name : vec) {
-		if (name.length() > maxNameWidth) {
-			maxNameWidth = name.length();
+	vector<int> maxNameWidths(TableName.size());
+	for(int i = 0; i < TableName.size(); ++i) {
+		maxNameWidths[i] = TableName[i].size();
+	}
+	for(const auto& v : vec) {
+		for(int i = 0; i < v.size(); ++i) {
+			maxNameWidths[i] = std::max(maxNameWidths[i], (int)v[i].size());
 		}
 	}
 
 	// 构建表格形式的输出
 	std::stringstream output;
-	output << "+";
-	for (int i = 0; i < maxNameWidth + 2; ++i) {
-		output << "-";
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		output << "+";
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
 	}
 	output << "+\n";
 
-	// 输出表名
-	output << "| " << TableName << " |\n";
-
-	output << "+";
-	for (int i = 0; i < maxNameWidth + 2; ++i) {
-		output << "-";
-	}
-	output << "+\n";
-
-	for (const std::string& name : vec) {
-		output << "| " << name;
-		for (int i = 0; i < maxNameWidth - name.length(); ++i) {
+	// 输出表头
+	for(int i = 0; i < TableName.size(); ++i) {
+		output << "| ";
+		output << TableName[i];
+		for(int j = 0; j < maxNameWidths[i] - TableName[i].size() + 1; ++j) {
 			output << " ";
 		}
-		output << " |\n";
+	}
+	output << "|\n";
+
+	output << "+";
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
+		if(i != maxNameWidths.size() - 1) {
+			output << "+";
+		}
+	}
+	output << "+\n";
+
+	for(const std::vector<std::string>& v : vec) {
+		for(int i = 0; i < v.size(); ++i) {
+			output << "| ";
+			output << v[i];
+			for(int j = 0; j < maxNameWidths[i] - v[i].size() + 1; ++j) {
+				output << " ";
+			}
+		}
+		output << "|\n";
 	}
 
 	output << "+";
-	for (int i = 0; i < maxNameWidth + 2; ++i) {
-		output << "-";
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
+		if(i != maxNameWidths.size() - 1) {
+			output << "+";
+		}
 	}
 	output << "+\n";
 
