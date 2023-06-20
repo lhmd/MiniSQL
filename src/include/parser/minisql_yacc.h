@@ -1,14 +1,14 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+/* A Bison parser, made by GNU Bison 3.5.1.  */
 
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
-   This program is free software; you can redistribute it and/or modify
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,9 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,57 +31,69 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Tokens.  */
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
+#ifndef YY_YY_MINISQL_YACC_H_INCLUDED
+# define YY_YY_MINISQL_YACC_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
+
+/* Token type.  */
 #ifndef YYTOKENTYPE
-#define YYTOKENTYPE
-/* Put the tokens into the symbol table, so that GDB and other debuggers
-   know about them.  */
-enum yytokentype {
-  CREATE = 258,
-  DROP = 259,
-  SELECT = 260,
-  INSERT = 261,
-  DELETE = 262,
-  UPDATE = 263,
-  TRXBEGIN = 264,
-  TRXCOMMIT = 265,
-  TRXROLLBACK = 266,
-  QUIT = 267,
-  EXECFILE = 268,
-  SHOW = 269,
-  USE = 270,
-  USING = 271,
-  DATABASE = 272,
-  DATABASES = 273,
-  TABLE = 274,
-  TABLES = 275,
-  INDEX = 276,
-  INDEXES = 277,
-  ON = 278,
-  FROM = 279,
-  WHERE = 280,
-  INTO = 281,
-  SET = 282,
-  VALUES = 283,
-  PRIMARY = 284,
-  KEY = 285,
-  UNIQUE = 286,
-  CHAR = 287,
-  INT = 288,
-  FLOAT = 289,
-  AND = 290,
-  OR = 291,
-  NOT = 292,
-  IS = 293,
-  FLAGNULL = 294,
-  IDENTIFIER = 295,
-  STRING = 296,
-  NUMBER = 297,
-  EQ = 298,
-  NE = 299,
-  LE = 300,
-  GE = 301
-};
+# define YYTOKENTYPE
+  enum yytokentype
+  {
+    CREATE = 258,
+    DROP = 259,
+    SELECT = 260,
+    INSERT = 261,
+    DELETE = 262,
+    UPDATE = 263,
+    TRXBEGIN = 264,
+    TRXCOMMIT = 265,
+    TRXROLLBACK = 266,
+    QUIT = 267,
+    EXECFILE = 268,
+    SHOW = 269,
+    USE = 270,
+    USING = 271,
+    DATABASE = 272,
+    DATABASES = 273,
+    TABLE = 274,
+    TABLES = 275,
+    INDEX = 276,
+    INDEXES = 277,
+    ON = 278,
+    FROM = 279,
+    WHERE = 280,
+    INTO = 281,
+    SET = 282,
+    VALUES = 283,
+    PRIMARY = 284,
+    KEY = 285,
+    UNIQUE = 286,
+    CHAR = 287,
+    INT = 288,
+    FLOAT = 289,
+    AND = 290,
+    OR = 291,
+    NOT = 292,
+    IS = 293,
+    FLAGNULL = 294,
+    IDENTIFIER = 295,
+    STRING = 296,
+    NUMBER = 297,
+    EQ = 298,
+    NE = 299,
+    LE = 300,
+    GE = 301
+  };
 #endif
 /* Tokens.  */
 #define CREATE 258
@@ -131,18 +141,25 @@ enum yytokentype {
 #define LE 300
 #define GE 301
 
-#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE
-#line 10 "minisql.y"
+/* Value type.  */
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+union YYSTYPE
 {
-  pSyntaxNode syntax_node;
-}
-/* Line 1529 of yacc.c.  */
-#line 145 "./minisql_yacc.h"
-YYSTYPE;
-#define yystype YYSTYPE /* obsolescent; will be withdrawn */
-#define YYSTYPE_IS_DECLARED 1
-#define YYSTYPE_IS_TRIVIAL 1
+#line 10 "minisql.y"
+
+	pSyntaxNode syntax_node;
+
+#line 153 "./minisql_yacc.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
 
+
 extern YYSTYPE yylval;
+
+int yyparse (void);
+
+#endif /* !YY_YY_MINISQL_YACC_H_INCLUDED  */
