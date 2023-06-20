@@ -56,17 +56,6 @@ class AbstractExpression {
   /** @return the type of this expression */
   virtual ExpressionType GetType() { return type_; }
 
-    void FindAllComparisonExpressions(vector<AbstractExpression *> & rets) {
-        if (type_ == ExpressionType::ComparisonExpression) {
-            rets.push_back(this);
-        } else {
-            for (auto & child : children_) {
-                child->FindAllComparisonExpressions(rets);
-            }
-        }
-        return;
-    }
-
  private:
   /** The return type of this expression. */
   TypeId ret_type_;

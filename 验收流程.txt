@@ -1,0 +1,44 @@
+create database db0;
+create database db1;
+create database db2;
+show databases;
+use db0;
+create table account(
+  id int, 
+  name char(16), 
+  balance float, 
+  primary key(id)
+);
+
+execfile "../../sql_gen/account00.txt";
+execfile "../../sql_gen/account01.txt";
+execfile "../../sql_gen/account02.txt";
+select * from account;
+
+select * from account where id = 12502345;
+select * from account where balance = 181.259995;
+select * from account where name = "name26789";
+select * from account where id <> 12509999;
+select * from account where balance <> 86.269997;
+select * from account where name <> "name09999";
+
+select id, name from account where balance >= 990 and balance < 3000;
+select name, balance from account where balance > 1000 and id <= 12529999;
+select * from account where id < 12515000 and name > "name14500";
+select * from account where id < 12500200 and name < "name00100";
+
+insert into account values(12509999,"name99999",8.1);
+
+create index idx01 on account(name);
+select * from account where name = "name26789";
+select * from account where name = "name45678";
+select * from account where id < 12500200 and name < "name00100";
+delete from account where name = "name25678";
+insert into account values(12525678, "name25678", 880.67);
+drop index idx01;
+
+update account set id =12529999 where name = "name29999";
+
+delete from account where balance = 123123.123;
+delete from account;
+drop table account;

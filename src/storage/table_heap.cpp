@@ -51,34 +51,34 @@ bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
  * TODO: Student Implement
  */
 bool TableHeap::UpdateTuple(Row &row, const RowId &rid, Transaction *txn) {
-	if(row.GetSerializedSize(schema_) >= PAGE_SIZE) return false;
-	// Find the page which contains the tuple.
-	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
-	// If the page could not be found, then abort the transaction.
-	if(page == nullptr) return false;
-	// Otherwise, update the tuple.
-	Row old_row(rid);
-	page->WLatch();
-	TablePage::result_of_update ret = page->TablePage::UpdateTuple(row, &old_row, schema_, txn, lock_manager_, log_manager_);
-	if(ret == TablePage::result_of_update::success) {
-//		MarkDelete(rid, txn);
-//		InsertTuple(old_row, txn);
-		page->WUnlatch();
-		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
-		return true;
-	}
-	else if(ret == TablePage::result_of_update::invalid_slot_num) {
-		page->WUnlatch();
-		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
-		return false;
-	}
-	else if(ret == TablePage::result_of_update::not_enough_space) {
-        page->ApplyDelete(rid,txn,log_manager_);
-        page->WUnlatch();
-        buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
-        //返回插入的结果
-        return InsertTuple(row,txn);
-	}
+  if(row.GetSerializedSize(schema_) >= PAGE_SIZE) return false;
+  // Find the page which contains the tuple.
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
+  // If the page could not be found, then abort the transaction.
+  if(page == nullptr) return false;
+  // Otherwise, update the tuple.
+  Row old_row(rid);
+  page->WLatch();
+  TablePage::result_of_update ret = page->TablePage::UpdateTuple(row, &old_row, schema_, txn, lock_manager_, log_manager_);
+  if(ret == TablePage::result_of_update::success) {
+    //		MarkDelete(rid, txn);
+    //		InsertTuple(old_row, txn);
+    page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+    return true;
+  }
+  else if(ret == TablePage::result_of_update::invalid_slot_num) {
+    page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
+    return false;
+  }
+  else if(ret == TablePage::result_of_update::not_enough_space) {
+    page->ApplyDelete(rid,txn,log_manager_);
+    page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+    //返回插入的结果
+    return InsertTuple(row,txn);
+  }
 }
 
 /**

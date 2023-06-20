@@ -90,7 +90,6 @@ dberr_t ExecuteEngine::ExecutePlan(const AbstractPlanNodeRef &plan, std::vector<
                                    ExecuteContext *exec_ctx) {
   // Construct the executor for the abstract plan node
   auto executor = CreateExecutor(exec_ctx, plan);
-
   try {
     executor->Init();
     RowId rid{};
@@ -279,13 +278,12 @@ dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *co
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteCreateDatabase" << std::endl;
 #endif
-  string name(ast->child_->val_);
-  if (dbs_.find(name) != dbs_.end()) {
-    return DB_ALREADY_EXIST;
-  }
-  dbs_[name] = new DBStorageEngine(name);
-  cout << "Database " << name << " has been established !" << endl;
-  return DB_SUCCESS;
+	std::string database_name = ast->child_->val_;
+	if (database_name.empty()) { return DB_FAILED; }
+	if(dbs_.find(database_name) != dbs_.end()) { return DB_ALREADY_EXIST; }
+	dbs_[database_name] = new DBStorageEngine(database_name);
+	std::cout << "Database " << database_name << " created." << std::endl;
+	return DB_SUCCESS;
 }
 
 /**
@@ -295,19 +293,18 @@ dberr_t ExecuteEngine::ExecuteDropDatabase(pSyntaxNode ast, ExecuteContext *cont
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDropDatabase" << std::endl;
 #endif
-  string db_name(ast->child_->val_);
-  auto it = dbs_.find(db_name);
+  string database_name = ast->child_->val_;
+  auto it = dbs_.find(database_name);
   if (it == dbs_.end()) {
     return DB_NOT_EXIST;
   }
-  string name = "./databases/" + db_name;
-  cout << "Database " << name << " has been dropped !" << endl;
+  string name = "./databases/" + database_name;
   remove(name.c_str());
-
   dbs_.erase(it);
+	std::cout << "Database " << database_name << " dropped." << std::endl;
 
   // If the current db is the one we are dropping, set the current db to empty.
-  if (current_db_ == db_name) {
+  if (current_db_ == database_name) {
     current_db_ = "";
   }
   return DB_SUCCESS;
@@ -320,17 +317,20 @@ dberr_t ExecuteEngine::ExecuteShowDatabases(pSyntaxNode ast, ExecuteContext *con
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowDatabases" << std::endl;
 #endif
-  // Store the records into a vector so that we can change the output more easily.
-  vector<string> db_names;
-  for (auto it : dbs_) {
-    db_names.push_back(it.first);
-  }
-  // Print the db names in the most naive way.
-  LOG(INFO) << "print all dbs";
-  for (auto it : db_names) {
-    cout << it << "\n";
-  }
-  return DB_SUCCESS;
+	if(dbs_.empty()) {
+		std::cout << "Empty database." << std::endl;
+		return DB_SUCCESS;
+	}
+	std::vector<std::string> databases;
+	std::vector<std::vector<std::string>> data;
+	for(const auto& db : dbs_) {
+		databases.clear();
+		databases.push_back(db.first);
+		data.push_back(databases);
+	}
+	std::vector<std::string> Names = {"Database"};
+	printDatabaseTable(Names, data);
+	return DB_SUCCESS;
 }
 
 /**
@@ -340,40 +340,39 @@ dberr_t ExecuteEngine::ExecuteUseDatabase(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteUseDatabase" << std::endl;
 #endif
-  string db_name(ast->child_->val_);
+  string db_name = ast->child_->val_;
   if(dbs_.find(db_name) == dbs_.end()) {
     return DB_NOT_EXIST;
   }
-  LOG(INFO) << "use database " << db_name;
   current_db_ = db_name;
+  std::cout << "Database changed to " << db_name << std::endl;
   return DB_SUCCESS;
 }
 
 /**
- * TODO: Student Implement DONE
+ * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowTables" << std::endl;
 #endif
-  // If no database is selected, we should reject the request.
-  if (current_db_.empty()) {
-    LOG(WARNING) << "No database selected.";
-    return DB_FAILED;
-  }
-  vector<TableInfo *> table_info_vec;
-  context->GetCatalog()->GetTables(table_info_vec);
-  // Store the records into a vector so that we can change the output more easily.
-  vector<string> table_names;
-  for (auto it : table_info_vec) {
-    table_names.push_back(it->GetTableName());
-  }
-
-  // Print the table names in the most naive way.
-  for (auto it : table_names) {
-    cout << it << "\n";
-  }
-  return DB_SUCCESS;
+	if (current_db_.empty()) {
+		std::cout << "No database selected." << std::endl;
+		return DB_FAILED;
+	}
+	std::vector<std::string> tables;
+	std::vector<std::vector<std::string>> data;
+	std::vector<TableInfo*> table_infos;
+	dbs_[current_db_]->catalog_mgr_->GetTables(table_infos);
+	tables.reserve(table_infos.size());
+	for (const auto& table_info_ : table_infos) {
+		tables.clear();
+		tables.emplace_back(table_info_->GetTableName().c_str());
+		data.push_back(tables);
+	}
+	std::vector<std::string> Names = {"Tables_in_" + current_db_};
+	printDatabaseTable(Names, data);
+	return DB_SUCCESS;
 }
 
 /**
@@ -383,32 +382,24 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteCreateTable" << std::endl;
 #endif
-  // If no database is selected, we should reject the request.
   if (current_db_.empty()) {
-    LOG(WARNING) << "No database selected.";
+    std::cout << "No database selected." << endl;
     return DB_FAILED;
   }
 
   string table_name(ast->child_->val_);
-  // Iterate the column list and parse the columns.
   auto col_list_node = ast->child_->next_;
-  vector<string> primary_key_list;
+  vector<string> primary_key_list, unique_keys, col_names;
   unordered_set<string> primary_key_set;
-  vector<string>unique_keys;
-  vector<string> col_names;
   vector<TypeId> col_types;
   vector<bool> col_is_unique;
-  vector<int> col_manage_len; // Only used when the column type is char.
-  vector<int> col_col_id; // Only used when the column type is char.
+  vector<int> col_manage_len, col_col_id;
   int cnt = 0;
   for (auto it = col_list_node->child_; it != nullptr; it = it->next_) {
     if (it->type_ == kNodeColumnDefinition) {
-      // If column is unique.
       col_is_unique.emplace_back(it->val_ != nullptr);
-      // Column definition.
       col_names.emplace_back(it->child_->val_);
       col_col_id.emplace_back(cnt++);
-      // Parse the column type.
       string col_type_name(it->child_->next_->val_);
       if (col_type_name == "int") {
         col_types.emplace_back(kTypeInt);
@@ -431,7 +422,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
     } else if (it->type_ == kNodeColumnList) {
       // Primary key definition.
       for (auto pk_it = it->child_; pk_it != nullptr; pk_it = pk_it->next_) {
-        primary_key_list.push_back(string(pk_it->val_));
+        primary_key_list.emplace_back(pk_it->val_);
         primary_key_set.insert(string(pk_it->val_));
       }
     }
@@ -441,9 +432,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   vector<Column *> columns;
   bool should_manage = false;
   for (int i = 0; i < col_names.size(); ++i) {
-    // LOG(INFO) << "Load column " << col_names[i] << "\n";
     if (primary_key_set.find(col_names[i]) != primary_key_set.end()) {
-      // That means this column is a primary key, which is unique and not nullable.
       if (col_types[i] == kTypeChar) {
         columns.push_back(new Column(col_names[i], col_types[i], col_manage_len[i], i, false, true));
         should_manage = true;
@@ -460,71 +449,30 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       } else {
         columns.push_back(new Column(col_names[i], col_types[i], i, false, col_is_unique[i]));
       }
-
     }
-    // If the type is char, we should set the length.
   }
 
-  // Create table schema.
   Schema * schema = new Schema(columns, should_manage);
-  // This is the output of the create table command which is useless here.
   TableInfo * table_info;
-  // Create the table.
   dberr_t err = context->GetCatalog()->CreateTable(table_name, schema, context->GetTransaction(), table_info);
   if (err != DB_SUCCESS) {
     return err;
   }
 
-  // Create index on primary key.
-  if (primary_key_list.size() != 0) {
+  if (!primary_key_list.empty()) {
     IndexInfo * index_info;
-    err = context->GetCatalog()->CreateIndex(
-        table_info->GetTableName(),
-        table_name + "_PK_IDX",
-        primary_key_list,
-        context->GetTransaction(),
-        index_info,
-        // INDEX TYPE SET
-        "bptree"
-        // "hash"
-    );
-
+    err = context->GetCatalog()->CreateIndex(table_info->GetTableName(),table_name + "_PK_IDX",primary_key_list,context->GetTransaction(),index_info,"bptree");
     // Create index on unique.
     for(auto it:unique_keys){
       string index_name = "UNIQUE_";
       index_name += it + "_";
       index_name += "ON_" + table_name;
-      IndexInfo *index_info;
       context->GetCatalog()->CreateIndex(table_name, index_name, unique_keys, context->GetTransaction(), index_info, "btree");
     }
-
     if (err != DB_SUCCESS) {
       return err;
     }
   }
-
-  // The exp don't need this part.
-  //    // Create index on unique but not primary key columns.
-  //    for (int i = 0; i < columns.size(); ++i) {
-  //        if (col_is_unique[i] && primary_key_set.find(col_names[i]) == primary_key_set.end() ) {
-  //            LOG(INFO) << "Try to generate index on unique column: " << col_names[i];
-  //            // This is the output of the create index command which is useless here.
-  //            vector<string> unique_list;
-  //            unique_list.emplace_back(col_names[i]);
-  //            dberr_t err = context->GetCatalog()->CreateIndex(
-  //                table_info->GetTableName(),
-  //                table_name + "_U_IDX_AT_" + col_names[i],
-  //                unique_list,
-  //                context->GetTransaction(),
-  //                index_info,
-  //                "bptree"
-  //            );
-  //            if (err != DB_SUCCESS) {
-  //                return err;
-  //            }
-  //        }
-  //    }
-
   return DB_SUCCESS;
 }
 
@@ -535,9 +483,8 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDropTable" << std::endl;
 #endif
-  // If no database is selected, we should reject the request.
   if (current_db_.empty()) {
-    LOG(WARNING) << "No database selected.";
+	  std::cout << "No database selected." << endl;
     return DB_FAILED;
   }
 
@@ -557,7 +504,7 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
       return err;
     }
   }
-
+  cout << "Drop table " << table_name<<endl;
   return DB_SUCCESS;
 }
 
@@ -571,9 +518,8 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowIndexes" << std::endl;
 #endif
-  // If no database is selected, we should reject the request.
   if (current_db_.empty()) {
-    LOG(WARNING) << "No database selected.";
+	  std::cout << "No database selected." << endl;
     return DB_FAILED;
   }
 
@@ -621,7 +567,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
   string index_type("bptree");
   vector<string> column_names;
   for (auto it = ast->child_->next_->next_->child_; it != nullptr; it = it->next_) {
-    column_names.push_back(it->val_);
+    column_names.emplace_back(it->val_);
   }
   // If it defines the index type, load it.
   if (ast->child_->next_->next_->next_ != nullptr) {
@@ -670,6 +616,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
       return err;
     }
   }
+  cout << "Create index " << index_name<<endl;
   return DB_SUCCESS;
 }
 
@@ -688,18 +635,15 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
     LOG(WARNING) << "No database selected.";
     return DB_FAILED;
   }
-
-  // Get the index name.
   string index_name(ast->child_->val_);
 
-  // Find the related table name.
   string table_name;
   vector<TableInfo *> table_info_vec;
   dberr_t err = context->GetCatalog()->GetTables(table_info_vec);
   if (err != DB_SUCCESS) {
     return err;
   }
-  // Search for the table.
+
   for (auto table_info : table_info_vec) {
     IndexInfo * index_info;
     err = context->GetCatalog()->GetIndex(table_info->GetTableName(), index_name, index_info);
@@ -710,13 +654,14 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
   }
 
   if (table_name.empty()) {
-    LOG(WARNING) << "No related table found.";
+    std::cout << "No related table found." << endl;
     return DB_INDEX_NOT_FOUND;
   }
 
   // Drop index.
   context->GetCatalog()->DropIndex(table_name, index_name);
 
+  cout << "Drop index " << index_name << endl;
   return DB_SUCCESS;
 }
 
@@ -749,8 +694,6 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteExecfile" << std::endl;
 #endif
-  // clean memory for the outside.
-
   string file_name(ast->child_->val_);
   ifstream file(file_name, ios::in);
   // Read in the commands in the file into the vector.
@@ -769,15 +712,9 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
       if (ch == ';') {
         file.get(ch); // Get the '\n' after ';'.
 
-        // Store the commands.
         exec_file_cmds_.emplace_back(cmd);
-        LOG(INFO) << "Read command: " << cmd << "\n";
 
         YY_BUFFER_STATE bp = yy_scan_string(cmd);
-        if (bp == nullptr) {
-          LOG(ERROR) << "Failed to create yy buffer state." << std::endl;
-          exit(1);
-        }
         yy_switch_to_buffer(bp);
         MinisqlParserInit();
         yyparse();
@@ -789,7 +726,6 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
         if (result == DB_QUIT) {
           break;
         }
-        // Clear the buffer.
         memset(cmd, 0, buf_size);
         cnt = 0;
       }
@@ -810,4 +746,76 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
   LOG(INFO) << "ExecuteQuit" << std::endl;
 #endif
   return DB_QUIT;
+}
+
+/**
+* My Utils
+*/
+void ExecuteEngine::printDatabaseTable(const std::vector<std::string>& TableName, const std::vector<std::vector<std::string>>& vec) {
+	// 计算每列的最大宽度
+	vector<int> maxNameWidths(TableName.size());
+	for(int i = 0; i < TableName.size(); ++i) {
+		maxNameWidths[i] = TableName[i].size();
+	}
+	for(const auto& v : vec) {
+		for(int i = 0; i < v.size(); ++i) {
+			maxNameWidths[i] = std::max(maxNameWidths[i], (int)v[i].size());
+		}
+	}
+
+	// 构建表格形式的输出
+	std::stringstream output;
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		output << "+";
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
+	}
+	output << "+\n";
+
+	// 输出表头
+	for(int i = 0; i < TableName.size(); ++i) {
+		output << "| ";
+		output << TableName[i];
+		for(int j = 0; j < maxNameWidths[i] - TableName[i].size() + 1; ++j) {
+			output << " ";
+		}
+	}
+	output << "|\n";
+
+	output << "+";
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
+		if(i != maxNameWidths.size() - 1) {
+			output << "+";
+		}
+	}
+	output << "+\n";
+
+	for(const std::vector<std::string>& v : vec) {
+		for(int i = 0; i < v.size(); ++i) {
+			output << "| ";
+			output << v[i];
+			for(int j = 0; j < maxNameWidths[i] - v[i].size() + 1; ++j) {
+				output << " ";
+			}
+		}
+		output << "|\n";
+	}
+
+	output << "+";
+	for(int i = 0; i < maxNameWidths.size(); ++i) {
+		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
+			output << "-";
+		}
+		if(i != maxNameWidths.size() - 1) {
+			output << "+";
+		}
+	}
+	output << "+\n";
+
+	// 输出表格
+	std::cout << output.str();
 }

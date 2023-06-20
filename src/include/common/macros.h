@@ -18,6 +18,18 @@
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
 
+#define MACH_WRITE_TO_WITH_POINT(Type, Buf, Data, point)  \
+  do{                                                     \
+    MACH_WRITE_TO(Type, Buf+point, Data);                 \
+    point += sizeof(Type);                                \
+  } while (0)
+
+#define MACH_WRITE_TO_STRING_WITH_POINT(Buf, Data, point, len_)  \
+  do{                                                            \
+    MACH_WRITE_STRING(Buf+point, Data);                                \
+    point += len_;                                               \
+  } while (0)
+
 #define MACH_WRITE_TO(Type, Buf, Data)       \
   do {                                       \
     *reinterpret_cast<Type *>(Buf) = (Data); \

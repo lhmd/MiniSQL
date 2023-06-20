@@ -10,45 +10,29 @@
 
 DeleteExecutor::DeleteExecutor(ExecuteContext *exec_ctx, const DeletePlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-        : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 void DeleteExecutor::Init() {
     child_executor_->Init();
+    GetExecutorContext()->GetCatalog()->GetTable(plan_->table_name_,table_info_);
+    GetExecutorContext()->GetCatalog()->GetTableIndexes(plan_->table_name_,indexes_);
 }
 
 bool DeleteExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {
-    if (child_executor_->Next(row, rid) ) {
-        Row old_row = *row;
-        RowId old_row_id = *rid;
-        TableInfo * table_info;
-        exec_ctx_->GetCatalog()->GetTable(plan_->GetTableName(), table_info);
-
-        // Delete the old record.
-        table_info->GetTableHeap()->MarkDelete(*rid, exec_ctx_->GetTransaction());
-        table_info->GetTableHeap()->ApplyDelete(*rid, exec_ctx_->GetTransaction());
-
-        // Update index.
-        vector<IndexInfo *> index_info_vec;
-        exec_ctx_->GetCatalog()->GetTableIndexes(plan_->GetTableName(), index_info_vec);
-        for (auto index_info : index_info_vec) {
-            auto index = index_info->GetIndex();
-            vector<Field> fields;
-            for (auto idx : index_info->GetIndexKeySchema()->GetColumns()) {
-                string col_name = idx->GetName();
-                uint32_t table_idx_id;
-                table_info->GetSchema()->GetColumnIndex(col_name, table_idx_id);
-                fields.push_back(*old_row.GetField(table_idx_id));
+	// delete row first
+    Row* delete_row = new Row();
+    if( child_executor_->Next(delete_row,nullptr) ){
+        if(!table_info_->GetTableHeap()->MarkDelete(delete_row->GetRowId(), nullptr)) return false;
+        for( auto index : indexes_ ){
+            vector<Field> key_contain;
+            for( auto col : index->GetIndexKeySchema()->GetColumns() ){
+                uint32_t col_index;
+                table_info_->GetSchema()->GetColumnIndex(col->GetName(),col_index);
+                key_contain.push_back(*(delete_row->GetField(col_index)));
             }
-            Row old_row_idx(fields);
-            index->RemoveEntry(
-                old_row_idx,
-                old_row_id,
-                exec_ctx_->GetTransaction()
-            );
+            index->GetIndex()->RemoveEntry(Row(key_contain),delete_row->GetRowId(), nullptr);
         }
-
         return true;
-    } else {
-        return false;
-    }
+    } else
+		return false;
 }

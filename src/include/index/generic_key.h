@@ -46,16 +46,17 @@ class KeyManager {
 
       if (lhs_value->CompareLessThan(*rhs_value) == CmpBool::kTrue) {
         if (key_schema_->GetColumn(i)->GetType() == kTypeChar) {
-          delete lhs_value->GetData();
-          delete rhs_value->GetData();
+          // TO BE FIXED
+          //          delete lhs_value->GetData();
+          //          delete rhs_value->GetData();
         }
         return -1;
       }
 
       if (lhs_value->CompareGreaterThan(*rhs_value) == CmpBool::kTrue) {
         if (key_schema_->GetColumn(i)->GetType() == kTypeChar) {
-          delete lhs_value->GetData();
-          delete rhs_value->GetData();
+          //          delete lhs_value->GetData();
+          //          delete rhs_value->GetData();
         }
         return 1;
       }
@@ -73,7 +74,9 @@ class KeyManager {
 
   // constructor
   KeyManager(Schema *key_schema, size_t key_size) : key_size_(key_size), key_schema_(key_schema) {}
-
+  Schema *GetSchema() {
+    return key_schema_;
+  }
  private:
   int key_size_;
   Schema *key_schema_;

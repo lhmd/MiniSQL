@@ -12,39 +12,37 @@
  * The IndexScanExecutor executor can over a table.
  */
 class IndexScanExecutor : public AbstractExecutor {
-public:
-    /**
-     * Construct a new SeqScanExecutor instance.
-     * @param exec_ctx The executor context
-     * @param plan The sequential scan plan to be executed
-     */
-    IndexScanExecutor(ExecuteContext *exec_ctx, const IndexScanPlanNode *plan);
+ public:
+  /**
+   * Construct a new SeqScanExecutor instance.
+   * @param exec_ctx The executor context
+   * @param plan The sequential scan plan to be executed
+   */
+  IndexScanExecutor(ExecuteContext *exec_ctx, const IndexScanPlanNode *plan);
 
-    /** Initialize the sequential scan */
-    void Init() override;
+  /** Initialize the sequential scan */
+  void Init() override;
 
-    /**
-     * Yield the next row from the sequential scan.
-     * @param[out] row The next row produced by the scan
-     * @param[out] rid The next row RID produced by the scan
-     * @return `true` if a row was produced, `false` if there are no more rows
-     */
-    bool Next(Row *row, RowId *rid) override;
+  /**
+   * Yield the next row from the sequential scan.
+   * @param[out] row The next row produced by the scan
+   * @param[out] rid The next row RID produced by the scan
+   * @return `true` if a row was produced, `false` if there are no more rows
+   */
+  bool Next(Row *row, RowId *rid) override;
 
-    /** @return The output schema for the sequential scan */
-    const Schema *GetOutputSchema() const override { return plan_->OutputSchema(); }
+  /** @return The output schema for the sequential scan */
+  const Schema *GetOutputSchema() const override { return plan_->OutputSchema(); }
 
-private:
+ private:
 
-    /** The sequential scan plan node to be executed */
-    const IndexScanPlanNode *plan_;
-    // If filter not exists, it will be `nullptr`.
-    AbstractExpressionRef filter_;
-    // Get table_info_ for convenience.
-    TableInfo * table_info_;
-    // The result will be stored in this vector.
-    vector<RowId> results_;
-    // The iterator of the table. It will be set to the `begin()` each time `SeqScanExecutor::Init()` is called.
-    vector<RowId>::iterator results_iter_;
+  /** The sequential scan plan node to be executed */
+  const IndexScanPlanNode *plan_;
+  vector<RowId> res0; // used to store scan res
+  int rec;
 
+  // create by lhmd
+	void MapIt(const AbstractExpressionRef &filter_predicate_, map<uint32_t, pair<string, Field>> &m0);
+
+	void CreateMap(const vector<IndexInfo *> &indexes, map<uint32_t, uint32_t> &m1);
 };

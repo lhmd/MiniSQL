@@ -20,6 +20,8 @@ class DBStorageEngine {
 
   std::unique_ptr<ExecuteContext> MakeExecuteContext(Transaction *txn);
 
+  int RemoveDBStorageEngine();  // 从物理上删除该Database
+
  public:
   DiskManager *disk_mgr_;
   BufferPoolManager *bpm_;

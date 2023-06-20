@@ -20,12 +20,8 @@ void InitGoogleLog(char *argv) {
 }
 
 void InputCommand(char *input, const int len) {
-    static int cnt = 0;
   memset(input, 0, len);
-  printf("minisql %d > ", cnt++);
-  if(cnt == 1018) {
-	  printf("go");
-  }
+  printf("minisql > ");
   int i = 0;
   char ch;
   while ((ch = getchar()) != ';') {
@@ -68,6 +64,7 @@ int main(int argc, char **argv) {
       // error
       printf("%s\n", MinisqlParserGetErrorMessage());
     } else {
+      // Comment them out if you don't need to debug the syntax tree
       printf("[INFO] Sql syntax parse ok!\n");
       SyntaxTreePrinter printer(MinisqlGetParserRootNode());
       printer.PrintTree(syntax_tree_file_mgr[syntax_tree_id++]);

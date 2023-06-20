@@ -28,11 +28,9 @@ class RowId {
   }
 
   bool operator==(const RowId &other) const { return page_id_ == other.page_id_ && slot_num_ == other.slot_num_; }
-    bool operator<(const RowId &other) const {
-        return page_id_ < other.page_id_ || (page_id_ == other.page_id_ && slot_num_ < other.slot_num_);
-    }
-
-private:
+  bool operator<(const RowId &other) const { return (page_id_ < other.page_id_) || ((page_id_ == other.page_id_) && (slot_num_ < other.slot_num_)); }
+  bool operator>(const RowId &other) const { return (page_id_ > other.page_id_) || ((page_id_ == other.page_id_) && (slot_num_ > other.slot_num_)); }
+ private:
   page_id_t page_id_{INVALID_PAGE_ID};
   uint32_t slot_num_{0};  // logical offset of the record in page, starts from 0. eg:0, 1, 2...
 };
