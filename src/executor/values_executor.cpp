@@ -7,9 +7,7 @@
 ValuesExecutor::ValuesExecutor(ExecuteContext *exec_ctx, const ValuesPlanNode *plan)
     : AbstractExecutor(exec_ctx), plan_(plan) {}
 
-void ValuesExecutor::Init() {
-  value_size_ = plan_->GetValues().size();
-}
+void ValuesExecutor::Init() { value_size_ = plan_->GetValues().size(); }
 
 bool ValuesExecutor::Next(Row *row, RowId *rid) {
   if (cursor_ < value_size_) {

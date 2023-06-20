@@ -4,7 +4,7 @@
 #include "executor/executors/insert_executor.h"
 
 /**
-* TODO: Student Implement DONE
+ * TODO: Student Implement DONE
  */
 InsertExecutor::InsertExecutor(ExecuteContext *exec_ctx, const InsertPlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
@@ -47,18 +47,12 @@ InsertExecutor::InsertExecutor(ExecuteContext *exec_ctx, const InsertPlanNode *p
         fields.push_back(*row.GetField(table_idx_id));
       }
       Row row_idx(fields);
-      index_info->GetIndex()->InsertEntry(
-          row_idx,
-          rid,
-          exec_ctx_->GetTransaction()
-      );
+      index_info->GetIndex()->InsertEntry(row_idx, rid, exec_ctx_->GetTransaction());
     }
   }
 }
 
-void InsertExecutor::Init() {
-  influence_count_ = 0;
-}
+void InsertExecutor::Init() { influence_count_ = 0; }
 
 bool InsertExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {
   if (influence_count_ < influence_total_) {

@@ -35,7 +35,7 @@ class LRUReplacer : public Replacer {
 
   size_t Size() override;
 
-private:
+ private:
   // add your own private member variables here
   list<frame_id_t> lru_list;
   size_t num_pages;

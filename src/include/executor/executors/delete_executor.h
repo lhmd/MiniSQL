@@ -48,8 +48,8 @@ class DeleteExecutor : public AbstractExecutor {
   const DeletePlanNode *plan_;
   /** The child executor from which RIDs for deleted rows are pulled */
   std::unique_ptr<AbstractExecutor> child_executor_;
-  vector<IndexInfo*> indexes_;
-  TableInfo* table_info_;
+  vector<IndexInfo *> indexes_;
+  TableInfo *table_info_;
 };
 
 #endif  // MINISQL_DELETE_EXECUTOR_H

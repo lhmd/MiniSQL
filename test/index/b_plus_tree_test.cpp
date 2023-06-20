@@ -45,10 +45,10 @@ TEST(BPlusTreeTests, SampleTest) {
   for (int i = 0; i < n; i++) {
     tree.Insert(keys[i], values[i]);
   }
-//  std::cout << keys.size() << " " << values.size() << std::endl;
-//  GenericKey *key = keys[n - 1];
-//  RowId value = values[n - 1];
-//  tree.Insert(key, value);
+  //  std::cout << keys.size() << " " << values.size() << std::endl;
+  //  GenericKey *key = keys[n - 1];
+  //  RowId value = values[n - 1];
+  //  tree.Insert(key, value);
   ASSERT_TRUE(tree.Check());
   // Print tree
   tree.PrintTree(mgr[0]);

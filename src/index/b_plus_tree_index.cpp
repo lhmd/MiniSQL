@@ -1,5 +1,5 @@
-#include <algorithm>
 #include "index/b_plus_tree_index.h"
+#include <algorithm>
 
 #include "index/generic_key.h"
 #include "utils/tree_file_mgr.h"
@@ -43,9 +43,8 @@ dberr_t BPlusTreeIndex::ScanKey(const Row &key, vector<RowId> &result, Transacti
     container_.GetValue(index_key, result, txn);
   } else if (compare_operator == ">") {
     auto iter = GetBeginIterator(index_key);
-    if (container_.GetValue(index_key, result, txn))
-      ++iter;
-	result.clear();
+    if (container_.GetValue(index_key, result, txn)) ++iter;
+    result.clear();
     for (; iter != GetEndIterator(); ++iter) {
       result.emplace_back((*iter).second);
     }
@@ -67,8 +66,7 @@ dberr_t BPlusTreeIndex::ScanKey(const Row &key, vector<RowId> &result, Transacti
       result.emplace_back((*iter).second);
     }
     vector<RowId> temp;
-    if (container_.GetValue(index_key, temp, txn))
-      result.erase(find(result.begin(), result.end(), temp[0]));
+    if (container_.GetValue(index_key, temp, txn)) result.erase(find(result.begin(), result.end(), temp[0]));
   }
   delete index_key;
   if (!result.empty())
@@ -82,14 +80,8 @@ dberr_t BPlusTreeIndex::Destroy() {
   return DB_SUCCESS;
 }
 
-IndexIterator BPlusTreeIndex::GetBeginIterator() {
-  return container_.Begin();
-}
+IndexIterator BPlusTreeIndex::GetBeginIterator() { return container_.Begin(); }
 
-IndexIterator BPlusTreeIndex::GetBeginIterator(GenericKey *key) {
-  return container_.Begin(key);
-}
+IndexIterator BPlusTreeIndex::GetBeginIterator(GenericKey *key) { return container_.Begin(key); }
 
-IndexIterator BPlusTreeIndex::GetEndIterator() {
-  return container_.End();
-}
+IndexIterator BPlusTreeIndex::GetEndIterator() { return container_.End(); }

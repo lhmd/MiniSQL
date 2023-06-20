@@ -12,9 +12,7 @@ class Field;
 
 enum CmpBool { kFalse = 0, kTrue, kNull };
 
-inline CmpBool GetCmpBool(bool boolean) {
-  return boolean ? CmpBool::kTrue : CmpBool::kFalse;
-}
+inline CmpBool GetCmpBool(bool boolean) { return boolean ? CmpBool::kTrue : CmpBool::kFalse; }
 
 class Type {
  public:

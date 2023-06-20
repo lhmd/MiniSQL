@@ -6,7 +6,7 @@
 DBStorageEngine::DBStorageEngine(std::string db_name, bool init, uint32_t buffer_pool_size)
     : db_file_name_(std::move(db_name)), init_(init) {
   // Init database file if needed
-  db_file_name_ = "./databases/"+db_file_name_;
+  db_file_name_ = "./databases/" + db_file_name_;
   if (init_) {
     remove(db_file_name_.c_str());
   }
@@ -51,7 +51,4 @@ std::unique_ptr<ExecuteContext> DBStorageEngine::MakeExecuteContext(Transaction 
   return std::make_unique<ExecuteContext>(txn, catalog_mgr_, bpm_);
 }
 
-int DBStorageEngine::RemoveDBStorageEngine() {
-    return remove(db_file_name_.c_str());
-}
-
+int DBStorageEngine::RemoveDBStorageEngine() { return remove(db_file_name_.c_str()); }

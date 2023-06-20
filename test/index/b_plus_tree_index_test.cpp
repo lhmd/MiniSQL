@@ -29,9 +29,9 @@ TEST(BPlusTreeTests, BPlusTreeIndexGenericKeyTest) {
 }
 
 TEST(BPlusTreeTests, BPlusTreeIndexSimpleTest) {
-//    using INDEX_KEY_TYPE = GenericKey<32>;
-//    using INDEX_COMPARATOR_TYPE = GenericComparator<32>;
-//    using BP_TREE_INDEX = BPlusTreeIndex<INDEX_KEY_TYPE, RowId, INDEX_COMPARATOR_TYPE>;
+  //    using INDEX_KEY_TYPE = GenericKey<32>;
+  //    using INDEX_COMPARATOR_TYPE = GenericComparator<32>;
+  //    using BP_TREE_INDEX = BPlusTreeIndex<INDEX_KEY_TYPE, RowId, INDEX_COMPARATOR_TYPE>;
   DBStorageEngine engine(db_name);
   std::vector<Column *> columns = {new Column("id", TypeId::kTypeInt, 0, false, false),
                                    new Column("name", TypeId::kTypeChar, 64, 1, true, false),

@@ -29,13 +29,7 @@
 
 class TablePage : public Page {
  public:
-
-	enum class result_of_update {
-		success,
-		invalid_slot_num,
-		deleted_tuple,
-		not_enough_space
-	};
+  enum class result_of_update { success, invalid_slot_num, deleted_tuple, not_enough_space };
 
   void Init(page_id_t page_id, page_id_t prev_id, LogManager *log_mgr, Transaction *txn);
 
@@ -57,8 +51,8 @@ class TablePage : public Page {
 
   bool MarkDelete(const RowId &rid, Transaction *txn, LockManager *lock_manager, LogManager *log_manager);
 
-  result_of_update UpdateTuple(const Row &new_row, Row *old_row, Schema *schema, Transaction *txn, LockManager *lock_manager,
-                   LogManager *log_manager);
+  result_of_update UpdateTuple(const Row &new_row, Row *old_row, Schema *schema, Transaction *txn,
+                               LockManager *lock_manager, LogManager *log_manager);
 
   void ApplyDelete(const RowId &rid, Transaction *txn, LogManager *log_manager);
 

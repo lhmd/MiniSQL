@@ -110,8 +110,7 @@ class BPlusTree {
   int internal_max_size_;
 
   // add by lhmd
-	Page *FindRightMostLeafPage(page_id_t page_id);
-
+  Page *FindRightMostLeafPage(page_id_t page_id);
 };
 
 #endif  // MINISQL_B_PLUS_TREE_H

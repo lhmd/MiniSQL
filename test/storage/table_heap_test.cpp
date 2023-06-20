@@ -14,9 +14,9 @@ using Fields = std::vector<Field>;
 
 TEST(TableHeapTest, TableHeapSampleTest) {
   // init testing instance
-	auto disk_mgr_ = new DiskManager(db_file_name);
-	auto bpm_ = new BufferPoolManager(DEFAULT_BUFFER_POOL_SIZE, disk_mgr_);
-	const int row_nums = 10000;
+  auto disk_mgr_ = new DiskManager(db_file_name);
+  auto bpm_ = new BufferPoolManager(DEFAULT_BUFFER_POOL_SIZE, disk_mgr_);
+  const int row_nums = 10000;
   // create schema
   std::vector<Column *> columns = {new Column("id", TypeId::kTypeInt, 0, false, false),
                                    new Column("name", TypeId::kTypeChar, 64, 1, true, false),

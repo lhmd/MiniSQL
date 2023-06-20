@@ -60,17 +60,17 @@ class IndexInfo {
     delete key_schema_;
   }
 
-/**
- * TODO: Student Implement
- */
+  /**
+   * TODO: Student Implement
+   */
   void Init(IndexMetadata *meta_data, TableInfo *table_info, BufferPoolManager *buffer_pool_manager) {
     // Step1: init index metadata and table info
     // Step2: mapping index key to key schema
     // Step3: call CreateIndex to create the index
-	meta_data_ = meta_data;
-	auto schema = table_info->GetSchema();
-	key_schema_ = Schema::ShallowCopySchema(schema, meta_data->GetKeyMapping());
-	index_ = CreateIndex(buffer_pool_manager, "bptree");
+    meta_data_ = meta_data;
+    auto schema = table_info->GetSchema();
+    key_schema_ = Schema::ShallowCopySchema(schema, meta_data->GetKeyMapping());
+    index_ = CreateIndex(buffer_pool_manager, "bptree");
   }
 
   inline Index *GetIndex() { return index_; }

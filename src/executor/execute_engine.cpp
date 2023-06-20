@@ -23,22 +23,19 @@ int yyparse(void);
 #include "parser/parser.h"
 }
 
-ExecuteEngine::ExecuteEngine(bool is_testing): is_testing_(is_testing) {
+ExecuteEngine::ExecuteEngine(bool is_testing) : is_testing_(is_testing) {
   char path[] = "./databases";
   DIR *dir;
-  if((dir = opendir(path)) == nullptr) {
+  if ((dir = opendir(path)) == nullptr) {
     mkdir("./databases", 0777);
     dir = opendir(path);
   }
   /** When you have completed all the code for the test,
-     *  run it using `main.cpp` and uncomment this part of the code.
-     **/
+   *  run it using `main.cpp` and uncomment this part of the code.
+   **/
   struct dirent *stdir;
-  while((stdir = readdir(dir)) != nullptr) {
-    if( strcmp( stdir->d_name , "." ) == 0 ||
-        strcmp( stdir->d_name , "..") == 0 ||
-        stdir->d_name[0] == '.')
-      continue;
+  while ((stdir = readdir(dir)) != nullptr) {
+    if (strcmp(stdir->d_name, ".") == 0 || strcmp(stdir->d_name, "..") == 0 || stdir->d_name[0] == '.') continue;
     dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
   }
   closedir(dir);
@@ -71,9 +68,9 @@ std::unique_ptr<AbstractExecutor> ExecuteEngine::CreateExecutor(ExecuteContext *
       auto insert_plan = dynamic_cast<const InsertPlanNode *>(plan.get());
       auto child_executor = CreateExecutor(exec_ctx, insert_plan->GetChildPlan());
       unique_ptr<InsertExecutor> ret;
-      try{
+      try {
         ret = std::make_unique<InsertExecutor>(exec_ctx, insert_plan, std::move(child_executor));
-      } catch(const char* msg){
+      } catch (const char *msg) {
         LOG(ERROR) << msg << "\n";
       }
       return ret;
@@ -115,8 +112,7 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast) {
   }
   auto start_time = std::chrono::system_clock::now();
   unique_ptr<ExecuteContext> context(nullptr);
-  if(!current_db_.empty())
-    context = dbs_[current_db_]->MakeExecuteContext(nullptr);
+  if (!current_db_.empty()) context = dbs_[current_db_]->MakeExecuteContext(nullptr);
   switch (ast->type_) {
     case kNodeCreateDB:
       return ExecuteCreateDatabase(ast, context.get());
@@ -152,7 +148,7 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast) {
       break;
   }
 
-  if(current_db_.empty()) {
+  if (current_db_.empty()) {
     LOG(ERROR) << "No database selected.\n";
     return DB_NOT_EXIST;
   }
@@ -278,12 +274,16 @@ dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *co
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteCreateDatabase" << std::endl;
 #endif
-	std::string database_name = ast->child_->val_;
-	if (database_name.empty()) { return DB_FAILED; }
-	if(dbs_.find(database_name) != dbs_.end()) { return DB_ALREADY_EXIST; }
-	dbs_[database_name] = new DBStorageEngine(database_name);
-	std::cout << "Database " << database_name << " created." << std::endl;
-	return DB_SUCCESS;
+  std::string database_name = ast->child_->val_;
+  if (database_name.empty()) {
+    return DB_FAILED;
+  }
+  if (dbs_.find(database_name) != dbs_.end()) {
+    return DB_ALREADY_EXIST;
+  }
+  dbs_[database_name] = new DBStorageEngine(database_name);
+  std::cout << "Database " << database_name << " created." << std::endl;
+  return DB_SUCCESS;
 }
 
 /**
@@ -301,7 +301,7 @@ dberr_t ExecuteEngine::ExecuteDropDatabase(pSyntaxNode ast, ExecuteContext *cont
   string name = "./databases/" + database_name;
   remove(name.c_str());
   dbs_.erase(it);
-	std::cout << "Database " << database_name << " dropped." << std::endl;
+  std::cout << "Database " << database_name << " dropped." << std::endl;
 
   // If the current db is the one we are dropping, set the current db to empty.
   if (current_db_ == database_name) {
@@ -317,20 +317,20 @@ dberr_t ExecuteEngine::ExecuteShowDatabases(pSyntaxNode ast, ExecuteContext *con
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowDatabases" << std::endl;
 #endif
-	if(dbs_.empty()) {
-		std::cout << "Empty database." << std::endl;
-		return DB_SUCCESS;
-	}
-	std::vector<std::string> databases;
-	std::vector<std::vector<std::string>> data;
-	for(const auto& db : dbs_) {
-		databases.clear();
-		databases.push_back(db.first);
-		data.push_back(databases);
-	}
-	std::vector<std::string> Names = {"Database"};
-	printDatabaseTable(Names, data);
-	return DB_SUCCESS;
+  if (dbs_.empty()) {
+    std::cout << "Empty database." << std::endl;
+    return DB_SUCCESS;
+  }
+  std::vector<std::string> databases;
+  std::vector<std::vector<std::string>> data;
+  for (const auto &db : dbs_) {
+    databases.clear();
+    databases.push_back(db.first);
+    data.push_back(databases);
+  }
+  std::vector<std::string> Names = {"Database"};
+  printDatabaseTable(Names, data);
+  return DB_SUCCESS;
 }
 
 /**
@@ -341,7 +341,7 @@ dberr_t ExecuteEngine::ExecuteUseDatabase(pSyntaxNode ast, ExecuteContext *conte
   LOG(INFO) << "ExecuteUseDatabase" << std::endl;
 #endif
   string db_name = ast->child_->val_;
-  if(dbs_.find(db_name) == dbs_.end()) {
+  if (dbs_.find(db_name) == dbs_.end()) {
     return DB_NOT_EXIST;
   }
   current_db_ = db_name;
@@ -356,23 +356,23 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowTables" << std::endl;
 #endif
-	if (current_db_.empty()) {
-		std::cout << "No database selected." << std::endl;
-		return DB_FAILED;
-	}
-	std::vector<std::string> tables;
-	std::vector<std::vector<std::string>> data;
-	std::vector<TableInfo*> table_infos;
-	dbs_[current_db_]->catalog_mgr_->GetTables(table_infos);
-	tables.reserve(table_infos.size());
-	for (const auto& table_info_ : table_infos) {
-		tables.clear();
-		tables.emplace_back(table_info_->GetTableName().c_str());
-		data.push_back(tables);
-	}
-	std::vector<std::string> Names = {"Tables_in_" + current_db_};
-	printDatabaseTable(Names, data);
-	return DB_SUCCESS;
+  if (current_db_.empty()) {
+    std::cout << "No database selected." << std::endl;
+    return DB_FAILED;
+  }
+  std::vector<std::string> tables;
+  std::vector<std::vector<std::string>> data;
+  std::vector<TableInfo *> table_infos;
+  dbs_[current_db_]->catalog_mgr_->GetTables(table_infos);
+  tables.reserve(table_infos.size());
+  for (const auto &table_info_ : table_infos) {
+    tables.clear();
+    tables.emplace_back(table_info_->GetTableName().c_str());
+    data.push_back(tables);
+  }
+  std::vector<std::string> Names = {"Tables_in_" + current_db_};
+  printDatabaseTable(Names, data);
+  return DB_SUCCESS;
 }
 
 /**
@@ -443,7 +443,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       if (col_types[i] == kTypeChar) {
         columns.push_back(new Column(col_names[i], col_types[i], col_manage_len[i], i, false, col_is_unique[i]));
         should_manage = true;
-        if(col_is_unique[i]){
+        if (col_is_unique[i]) {
           unique_keys.push_back(col_names[i]);
         }
       } else {
@@ -452,22 +452,24 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
     }
   }
 
-  Schema * schema = new Schema(columns, should_manage);
-  TableInfo * table_info;
+  Schema *schema = new Schema(columns, should_manage);
+  TableInfo *table_info;
   dberr_t err = context->GetCatalog()->CreateTable(table_name, schema, context->GetTransaction(), table_info);
   if (err != DB_SUCCESS) {
     return err;
   }
 
   if (!primary_key_list.empty()) {
-    IndexInfo * index_info;
-    err = context->GetCatalog()->CreateIndex(table_info->GetTableName(),table_name + "_PK_IDX",primary_key_list,context->GetTransaction(),index_info,"bptree");
+    IndexInfo *index_info;
+    err = context->GetCatalog()->CreateIndex(table_info->GetTableName(), table_name + "_PK_IDX", primary_key_list,
+                                             context->GetTransaction(), index_info, "bptree");
     // Create index on unique.
-    for(auto it:unique_keys){
+    for (auto it : unique_keys) {
       string index_name = "UNIQUE_";
       index_name += it + "_";
       index_name += "ON_" + table_name;
-      context->GetCatalog()->CreateIndex(table_name, index_name, unique_keys, context->GetTransaction(), index_info, "btree");
+      context->GetCatalog()->CreateIndex(table_name, index_name, unique_keys, context->GetTransaction(), index_info,
+                                         "btree");
     }
     if (err != DB_SUCCESS) {
       return err;
@@ -484,7 +486,7 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
   LOG(INFO) << "ExecuteDropTable" << std::endl;
 #endif
   if (current_db_.empty()) {
-	  std::cout << "No database selected." << endl;
+    std::cout << "No database selected." << endl;
     return DB_FAILED;
   }
 
@@ -504,7 +506,7 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
       return err;
     }
   }
-  cout << "Drop table " << table_name<<endl;
+  cout << "Drop table " << table_name << endl;
   return DB_SUCCESS;
 }
 
@@ -513,13 +515,13 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
  */
 dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *context) {
   /**
-     * show indexes;
+   * show indexes;
    */
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowIndexes" << std::endl;
 #endif
   if (current_db_.empty()) {
-	  std::cout << "No database selected." << endl;
+    std::cout << "No database selected." << endl;
     return DB_FAILED;
   }
 
@@ -528,7 +530,7 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
   context->GetCatalog()->GetTables(table_info_vec);
 
   // Use map to store the table name and its index info.
-  map< string, vector<IndexInfo *> > table_index_vec_pair;
+  map<string, vector<IndexInfo *>> table_index_vec_pair;
   for (auto table_info : table_info_vec) {
     string table_name = table_info->GetTableName();
     std::vector<IndexInfo *> index_info_vec;
@@ -555,8 +557,8 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
  */
 dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *context) {
   /**
-     * create index idx1 on t1(a, b);
-     * create index idx1 on t1(a, b) using btree;
+   * create index idx1 on t1(a, b);
+   * create index idx1 on t1(a, b) using btree;
    */
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteCreateIndex" << std::endl;
@@ -575,22 +577,16 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
   }
 
   // Get table.
-  TableInfo * table_info;
+  TableInfo *table_info;
   dberr_t err = context->GetCatalog()->GetTable(table_name, table_info);
   if (err != DB_SUCCESS) {
     return err;
   }
 
   // Create index on the table.
-  IndexInfo * index_info;
-  err = context->GetCatalog()->CreateIndex(
-      table_name,
-      index_name,
-      column_names,
-      context->GetTransaction(),
-      index_info,
-      index_type
-  );
+  IndexInfo *index_info;
+  err = context->GetCatalog()->CreateIndex(table_name, index_name, column_names, context->GetTransaction(), index_info,
+                                           index_type);
   if (err != DB_SUCCESS) {
     return err;
   }
@@ -607,25 +603,21 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     }
     // The row to be inserted into index.
     Row row_idx(fields);
-    err = index_info->GetIndex()->InsertEntry(
-        row_idx,
-        rid,
-        context->GetTransaction()
-    );
+    err = index_info->GetIndex()->InsertEntry(row_idx, rid, context->GetTransaction());
     if (err != DB_SUCCESS) {
       return err;
     }
   }
-  cout << "Create index " << index_name<<endl;
+  cout << "Create index " << index_name << endl;
   return DB_SUCCESS;
 }
 
 /**
-* TODO: Student Implement
+ * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context) {
   /**
-     * drop index idx1;
+   * drop index idx1;
    */
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDropIndex" << std::endl;
@@ -645,7 +637,7 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
   }
 
   for (auto table_info : table_info_vec) {
-    IndexInfo * index_info;
+    IndexInfo *index_info;
     err = context->GetCatalog()->GetIndex(table_info->GetTableName(), index_name, index_info);
     if (err == DB_SUCCESS) {
       table_name = table_info->GetTableName();
@@ -664,7 +656,6 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
   cout << "Drop index " << index_name << endl;
   return DB_SUCCESS;
 }
-
 
 dberr_t ExecuteEngine::ExecuteTrxBegin(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
@@ -710,7 +701,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
       // Judge if a whole command is gotten.
       cmd[cnt++] = ch;
       if (ch == ';') {
-        file.get(ch); // Get the '\n' after ';'.
+        file.get(ch);  // Get the '\n' after ';'.
 
         exec_file_cmds_.emplace_back(cmd);
 
@@ -749,73 +740,74 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
 }
 
 /**
-* My Utils
-*/
-void ExecuteEngine::printDatabaseTable(const std::vector<std::string>& TableName, const std::vector<std::vector<std::string>>& vec) {
-	// 计算每列的最大宽度
-	vector<int> maxNameWidths(TableName.size());
-	for(int i = 0; i < TableName.size(); ++i) {
-		maxNameWidths[i] = TableName[i].size();
-	}
-	for(const auto& v : vec) {
-		for(int i = 0; i < v.size(); ++i) {
-			maxNameWidths[i] = std::max(maxNameWidths[i], (int)v[i].size());
-		}
-	}
+ * My Utils
+ */
+void ExecuteEngine::printDatabaseTable(const std::vector<std::string> &TableName,
+                                       const std::vector<std::vector<std::string>> &vec) {
+  // 计算每列的最大宽度
+  vector<int> maxNameWidths(TableName.size());
+  for (int i = 0; i < TableName.size(); ++i) {
+    maxNameWidths[i] = TableName[i].size();
+  }
+  for (const auto &v : vec) {
+    for (int i = 0; i < v.size(); ++i) {
+      maxNameWidths[i] = std::max(maxNameWidths[i], (int)v[i].size());
+    }
+  }
 
-	// 构建表格形式的输出
-	std::stringstream output;
-	for(int i = 0; i < maxNameWidths.size(); ++i) {
-		output << "+";
-		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
-			output << "-";
-		}
-	}
-	output << "+\n";
+  // 构建表格形式的输出
+  std::stringstream output;
+  for (int i = 0; i < maxNameWidths.size(); ++i) {
+    output << "+";
+    for (int j = 0; j < maxNameWidths[i] + 2; ++j) {
+      output << "-";
+    }
+  }
+  output << "+\n";
 
-	// 输出表头
-	for(int i = 0; i < TableName.size(); ++i) {
-		output << "| ";
-		output << TableName[i];
-		for(int j = 0; j < maxNameWidths[i] - TableName[i].size() + 1; ++j) {
-			output << " ";
-		}
-	}
-	output << "|\n";
+  // 输出表头
+  for (int i = 0; i < TableName.size(); ++i) {
+    output << "| ";
+    output << TableName[i];
+    for (int j = 0; j < maxNameWidths[i] - TableName[i].size() + 1; ++j) {
+      output << " ";
+    }
+  }
+  output << "|\n";
 
-	output << "+";
-	for(int i = 0; i < maxNameWidths.size(); ++i) {
-		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
-			output << "-";
-		}
-		if(i != maxNameWidths.size() - 1) {
-			output << "+";
-		}
-	}
-	output << "+\n";
+  output << "+";
+  for (int i = 0; i < maxNameWidths.size(); ++i) {
+    for (int j = 0; j < maxNameWidths[i] + 2; ++j) {
+      output << "-";
+    }
+    if (i != maxNameWidths.size() - 1) {
+      output << "+";
+    }
+  }
+  output << "+\n";
 
-	for(const std::vector<std::string>& v : vec) {
-		for(int i = 0; i < v.size(); ++i) {
-			output << "| ";
-			output << v[i];
-			for(int j = 0; j < maxNameWidths[i] - v[i].size() + 1; ++j) {
-				output << " ";
-			}
-		}
-		output << "|\n";
-	}
+  for (const std::vector<std::string> &v : vec) {
+    for (int i = 0; i < v.size(); ++i) {
+      output << "| ";
+      output << v[i];
+      for (int j = 0; j < maxNameWidths[i] - v[i].size() + 1; ++j) {
+        output << " ";
+      }
+    }
+    output << "|\n";
+  }
 
-	output << "+";
-	for(int i = 0; i < maxNameWidths.size(); ++i) {
-		for(int j = 0; j < maxNameWidths[i] + 2; ++j) {
-			output << "-";
-		}
-		if(i != maxNameWidths.size() - 1) {
-			output << "+";
-		}
-	}
-	output << "+\n";
+  output << "+";
+  for (int i = 0; i < maxNameWidths.size(); ++i) {
+    for (int j = 0; j < maxNameWidths[i] + 2; ++j) {
+      output << "-";
+    }
+    if (i != maxNameWidths.size() - 1) {
+      output << "+";
+    }
+  }
+  output << "+\n";
 
-	// 输出表格
-	std::cout << output.str();
+  // 输出表格
+  std::cout << output.str();
 }

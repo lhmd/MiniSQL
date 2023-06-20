@@ -11,19 +11,17 @@ UpdateExecutor::UpdateExecutor(ExecuteContext *exec_ctx, const UpdatePlanNode *p
 }
 
 /**
-* TODO: Student Implement
+ * TODO: Student Implement
  */
-void UpdateExecutor::Init() {
-  child_executor_->Init();
-}
+void UpdateExecutor::Init() { child_executor_->Init(); }
 
 bool UpdateExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {
-  if (child_executor_->Next(row, rid) ) {
+  if (child_executor_->Next(row, rid)) {
     rid = new RowId(row->GetRowId());
     Row old_row = *row;
     RowId old_row_id = *rid;
     *row = GenerateUpdatedTuple(*row);
-    TableInfo * table_info;
+    TableInfo *table_info;
     exec_ctx_->GetCatalog()->GetTable(plan_->GetTableName(), table_info);
     table_info->GetTableHeap()->UpdateTuple(*row, *rid, exec_ctx_->GetTransaction());
 
@@ -39,24 +37,16 @@ bool UpdateExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {
         fields.push_back(*old_row.GetField(table_idx_id));
       }
       Row old_row_idx(fields);
-      index->RemoveEntry(
-          old_row_idx,
-          old_row_id,
-          exec_ctx_->GetTransaction()
-      );
+      index->RemoveEntry(old_row_idx, old_row_id, exec_ctx_->GetTransaction());
 
-      while(!fields.empty()) {
+      while (!fields.empty()) {
         fields.pop_back();
       }
       for (int i = 0; i < index_info->GetIndexKeySchema()->GetColumnCount(); ++i) {
         fields.push_back(*row->GetField(i));
       }
       Row row_idx(fields);
-      index->InsertEntry(
-          row_idx,
-          *rid,
-          exec_ctx_->GetTransaction()
-      );
+      index->InsertEntry(row_idx, *rid, exec_ctx_->GetTransaction());
     }
 
     return true;
@@ -68,11 +58,11 @@ bool UpdateExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {
 Row UpdateExecutor::GenerateUpdatedTuple(const Row &src_row) {
   vector<Field> fields;
   fields.reserve(src_row.GetFieldCount());
-for (int i = 0; i < src_row.GetFieldCount(); ++i) {
+  for (int i = 0; i < src_row.GetFieldCount(); ++i) {
     fields.push_back(*src_row.GetField(i));
   }
   auto attrs = plan_->GetUpdateAttr();
-  for (const auto& attr : attrs) {
+  for (const auto &attr : attrs) {
     fields[attr.first] = *new Field(attr.second->Evaluate(&src_row));
   }
   return Row(fields);

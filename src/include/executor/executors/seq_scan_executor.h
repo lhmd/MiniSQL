@@ -43,7 +43,7 @@ class SeqScanExecutor : public AbstractExecutor {
   TableIterator it_;
   TableIterator end_;
 
-  TableInfo* table_info_;
+  TableInfo *table_info_;
 };
 
 #endif  // MINISQL_SEQ_SCAN_EXECUTOR_H

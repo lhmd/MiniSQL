@@ -14,8 +14,7 @@ class InsertStatement : public AbstractStatement {
 
   /** Transfer syntax tree to statement. */
   void SyntaxTree2Statement(pSyntaxNode ast) {
-    if (!ast)
-      return;
+    if (!ast) return;
     switch (ast->type_) {
       case kNodeIdentifier: {
         TableInfo *info = nullptr;
@@ -44,8 +43,7 @@ class InsertStatement : public AbstractStatement {
     auto columns = info->GetSchema()->GetColumns();
 
     for (auto column : columns) {
-      if (!ast)
-        throw std::logic_error("The inserted value does not match the schema");
+      if (!ast) throw std::logic_error("The inserted value does not match the schema");
       if (ast_->type_ == kNodeNull) {
         auto f = new Field(column->GetType());
         value.emplace_back(std::make_shared<ConstantValueExpression>(*f));
@@ -55,8 +53,7 @@ class InsertStatement : public AbstractStatement {
       }
       ast = ast->next_;
     }
-    if (ast)
-      throw std::logic_error("The inserted value does not match the schema");
+    if (ast) throw std::logic_error("The inserted value does not match the schema");
     raw_values_.emplace_back(value);
   }
 

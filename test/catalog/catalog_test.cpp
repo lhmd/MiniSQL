@@ -49,10 +49,10 @@ TEST(CatalogTest, CatalogTableTest) {
                                    new Column("name", TypeId::kTypeChar, 64, 1, true, false),
                                    new Column("account", TypeId::kTypeFloat, 2, true, false)};
   auto schema = std::make_shared<Schema>(columns);
-//	auto schema = new Schema(columns);
+  //	auto schema = new Schema(columns);
   Transaction txn;
   catalog_01->CreateTable("table-1", schema.get(), &txn, table_info);
-//	catalog_01->CreateTable("table-1", schema, &txn, table_info);
+  //	catalog_01->CreateTable("table-1", schema, &txn, table_info);
   ASSERT_TRUE(table_info != nullptr);
   TableInfo *table_info_02 = nullptr;
   ASSERT_EQ(DB_SUCCESS, catalog_01->GetTable("table-1", table_info_02));

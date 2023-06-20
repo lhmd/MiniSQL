@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "parser/parser.h"
+#include <stdio.h>
 #include "parser/syntax_tree.h"
 
 pSyntaxNode minisql_parser_root_node_ = NULL;
@@ -29,9 +29,7 @@ void MinisqlParserMovePos(int line, char *text) {
   }
 }
 
-void MinisqlParserSetRoot(pSyntaxNode node) {
-  minisql_parser_root_node_ = node;
-}
+void MinisqlParserSetRoot(pSyntaxNode node) { minisql_parser_root_node_ = node; }
 
 void MinisqlParserSetError(char *msg) {
   if (minisql_parser_error_) {
@@ -46,9 +44,7 @@ void MinisqlParserSetError(char *msg) {
   minisql_parser_error_message_ = msg;
 }
 
-pSyntaxNode MinisqlGetParserRootNode() {
-  return minisql_parser_root_node_;
-}
+pSyntaxNode MinisqlGetParserRootNode() { return minisql_parser_root_node_; }
 
 void MinisqlParserInit() {
   minisql_parser_root_node_ = NULL;
@@ -59,14 +55,8 @@ void MinisqlParserInit() {
   minisql_parser_debug_node_count_ = 0;
 }
 
-void MinisqlParserFinish() {
-  DestroySyntaxTree();
-}
+void MinisqlParserFinish() { DestroySyntaxTree(); }
 
-int MinisqlParserGetError() {
-  return minisql_parser_error_;
-}
+int MinisqlParserGetError() { return minisql_parser_error_; }
 
-char *MinisqlParserGetErrorMessage() {
-  return minisql_parser_error_message_;
-}
+char *MinisqlParserGetErrorMessage() { return minisql_parser_error_message_; }

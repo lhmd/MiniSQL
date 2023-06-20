@@ -35,14 +35,13 @@ class IndexScanExecutor : public AbstractExecutor {
   const Schema *GetOutputSchema() const override { return plan_->OutputSchema(); }
 
  private:
-
   /** The sequential scan plan node to be executed */
   const IndexScanPlanNode *plan_;
-  vector<RowId> res0; // used to store scan res
+  vector<RowId> res0;  // used to store scan res
   int rec;
 
   // create by lhmd
-	void MapIt(const AbstractExpressionRef &filter_predicate_, map<uint32_t, pair<string, Field>> &m0);
+  void MapIt(const AbstractExpressionRef &filter_predicate_, map<uint32_t, pair<string, Field>> &m0);
 
-	void CreateMap(const vector<IndexInfo *> &indexes, map<uint32_t, uint32_t> &m1);
+  void CreateMap(const vector<IndexInfo *> &indexes, map<uint32_t, uint32_t> &m1);
 };

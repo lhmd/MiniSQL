@@ -2,9 +2,9 @@
 #define MINISQL_EXECUTE_ENGINE_H
 
 #include <memory>
-#include <unordered_set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "common/dberr.h"
 #include "common/instance.h"
@@ -32,7 +32,7 @@ class ExecuteEngine {
   }
 
   /**
-     * executor interface
+   * executor interface
    */
   dberr_t Execute(pSyntaxNode ast);
 
@@ -76,7 +76,6 @@ class ExecuteEngine {
 
   dberr_t ExecuteQuit(pSyntaxNode ast, ExecuteContext *context);
 
-
  private:
   std::unordered_map<std::string, DBStorageEngine *> dbs_; /** all opened databases */
   std::string current_db_;                                 /** current database */
@@ -87,7 +86,7 @@ class ExecuteEngine {
   bool is_testing_;
 
   // create by lhmd
-	void printDatabaseTable(const vector<std::string> &TableName, const vector<std::vector<std::string>> &vec);
+  void printDatabaseTable(const vector<std::string> &TableName, const vector<std::vector<std::string>> &vec);
 };
 
 #endif  // MINISQL_EXECUTE_ENGINE_H

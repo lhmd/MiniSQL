@@ -8,7 +8,7 @@
 class TableHeap;
 
 class TableIterator {
-public:
+ public:
   // you may define your own constructor based on your member variables
   explicit TableIterator();
   explicit TableIterator(TableHeap *table_heap, Row row, Transaction *txn);
@@ -31,11 +31,11 @@ public:
 
   TableIterator operator++(int);
 
-private:
-	// add your own private member variables here
-	TableHeap *table_heap_;
-	Row row_;
-	Transaction *txn_;
+ private:
+  // add your own private member variables here
+  TableHeap *table_heap_;
+  Row row_;
+  Transaction *txn_;
 };
 
 #endif  // MINISQL_TABLE_ITERATOR_H

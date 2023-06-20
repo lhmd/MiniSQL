@@ -13,8 +13,7 @@ class DeleteStatement : public AbstractStatement {
 
   /** Transfer syntax tree to statement. */
   void SyntaxTree2Statement(pSyntaxNode ast) {
-    if (!ast)
-      return;
+    if (!ast) return;
     switch (ast->type_) {
       case kNodeIdentifier: {
         TableInfo *info = nullptr;

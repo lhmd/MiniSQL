@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "parser/syntax_tree.h"
+#include <stdio.h>
 
 extern int minisql_parser_line_no_;
 extern int minisql_parser_column_no_;
@@ -7,7 +7,7 @@ extern int minisql_parser_debug_node_count_;
 extern pSyntaxNodeList minisql_parser_syntax_node_list_;
 
 pSyntaxNode CreateSyntaxNode(SyntaxNodeType type, char *val) {
-  pSyntaxNode node = (pSyntaxNode) malloc(sizeof(struct SyntaxNode));
+  pSyntaxNode node = (pSyntaxNode)malloc(sizeof(struct SyntaxNode));
   node->id_ = minisql_parser_debug_node_count_++;
   node->type_ = type;
   node->line_no_ = minisql_parser_line_no_;
@@ -18,13 +18,13 @@ pSyntaxNode CreateSyntaxNode(SyntaxNodeType type, char *val) {
   if (val != NULL) {
     // special for string, remove ""
     if (type == kNodeString) {
-      size_t len = strlen(val) - 1;   // -2 + 1
-      node->val_ = (char *) malloc(len);
+      size_t len = strlen(val) - 1;  // -2 + 1
+      node->val_ = (char *)malloc(len);
       strncpy(node->val_, val + 1, len - 1);
-      node->val_[len - 1]  = '\0';
+      node->val_[len - 1] = '\0';
     } else {
       size_t len = strlen(val) + 1;
-      node->val_ = (char *) malloc(len);
+      node->val_ = (char *)malloc(len);
       strcpy(node->val_, val);
       node->val_[len] = '\0';
     }
@@ -32,7 +32,7 @@ pSyntaxNode CreateSyntaxNode(SyntaxNodeType type, char *val) {
     node->val_ = NULL;
   }
   // linked to syntax node list
-  pSyntaxNodeList list_node = (pSyntaxNodeList) malloc(sizeof(struct SyntaxNodeList));
+  pSyntaxNodeList list_node = (pSyntaxNodeList)malloc(sizeof(struct SyntaxNodeList));
   list_node->node_ = node;
   if (minisql_parser_syntax_node_list_ == NULL) {
     minisql_parser_syntax_node_list_ = list_node;

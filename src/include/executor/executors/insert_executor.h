@@ -45,7 +45,7 @@ class InsertExecutor : public AbstractExecutor {
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
   std::unique_ptr<AbstractExecutor> child_executor_;
-  TableInfo * table_info_;
+  TableInfo *table_info_;
   uint32_t influence_count_;
   uint32_t influence_total_;
 };
