@@ -6,39 +6,37 @@
 /**
  * TODO: Student Implement
  */
-TableIterator::TableIterator(TableHeap *table_heap, RowId rid, Transaction *txn) {
-	this->table_heap_ = table_heap;
-	this->row_->SetRowId(rid);
-	this->txn_ = txn;
-	if(rid.GetPageId() != INVALID_PAGE_ID) {
-		this->table_heap_->GetTuple(row_, txn_);
-	}
+TableIterator::TableIterator() {
+	table_heap_ = nullptr;
+	row_ = Row();
+	txn_ = nullptr;
+}
+TableIterator::TableIterator(TableHeap *table_heap, Row row, Transaction *txn)
+: table_heap_(table_heap), row_(row), txn_(txn) {
 }
 
 TableIterator::TableIterator(const TableIterator &other) {
 	this->table_heap_ = other.table_heap_;
-	this->row_->SetRowId(other.row_->GetRowId());
+	this->row_ = other.row_;
 	this->txn_ = other.txn_;
 }
 
 TableIterator::~TableIterator() {}
 
 bool TableIterator::operator==(const TableIterator &itr) const {
-	return row_->GetRowId().Get() == itr.row_->GetRowId().Get();
+    return (table_heap_ == itr.table_heap_) && (row_.GetRowId() == itr.row_.GetRowId());
 }
 
 bool TableIterator::operator!=(const TableIterator &itr) const {
-	return row_->GetRowId().Get() != itr.row_->GetRowId().Get();
+    return !(operator==(itr));
 }
 
 const Row &TableIterator::operator*() {
-	ASSERT(*this != table_heap_->End(), "TableHeap iterator out of range, invalid dereference.");
-	return *row_;
+    return row_;
 }
 
 Row *TableIterator::operator->() {
-	ASSERT(*this != table_heap_->End(), "TableHeap iterator out of range, invalid dereference.");
-	return row_;
+    return &row_;
 }
 
 TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
@@ -50,34 +48,39 @@ TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
 
 // ++iter
 TableIterator &TableIterator::operator++() {
-	BufferPoolManager *buffer_pool_manager = table_heap_->buffer_pool_manager_;
-	auto cur_page = reinterpret_cast<TablePage *>(buffer_pool_manager->FetchPage(row_->GetRowId().GetPageId()));
-	cur_page->RLatch();
-	assert(cur_page != nullptr);  // all pages are pinned
-
-	RowId next_tuple_rid;
-	if (!cur_page->GetNextTupleRid(row_->GetRowId(),
-								   &next_tuple_rid)) {  // end of this page
-		while (cur_page->GetNextPageId() != INVALID_PAGE_ID) {
-			auto next_page = reinterpret_cast<TablePage *>(buffer_pool_manager->FetchPage(cur_page->GetNextPageId()));
-			cur_page->RUnlatch();
-			buffer_pool_manager->UnpinPage(cur_page->GetTablePageId(), false);
-			cur_page = next_page;
-			cur_page->RLatch();
-			if (cur_page->GetFirstTupleRid(&next_tuple_rid)) {
-				break;
-			}
-		}
-	}
-	row_ = new Row(next_tuple_rid);
-
-	if (*this != table_heap_->End()) {
-		table_heap_->GetTuple(row_ ,nullptr);
-	}
-	// release until copy the tuple
-	cur_page->RUnlatch();
-	buffer_pool_manager->UnpinPage(cur_page->GetTablePageId(), false);
-	return *this;
+    if(*this == table_heap_->End()){
+        return *this;
+    }
+    TablePage* page = reinterpret_cast<TablePage* >(table_heap_->buffer_pool_manager_->FetchPage(row_.GetRowId().GetPageId()));
+    RowId next_id = RowId();
+    page->RLatch();
+    if(page->GetNextTupleRid(row_.GetRowId(),&next_id)){
+        row_.destroy();
+        row_.SetRowId(next_id);
+        page->GetTuple(&row_,table_heap_->schema_,txn_,table_heap_->lock_manager_);
+        page->RUnlatch();
+        table_heap_->buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
+        return *this;
+    }
+    page_id_t next_page_id;
+    while((next_page_id = page->GetNextPageId()) != INVALID_PAGE_ID){
+        page->RUnlatch();
+        table_heap_->buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
+        page = reinterpret_cast<TablePage* >(table_heap_->buffer_pool_manager_->FetchPage(next_page_id));
+        page->RLatch();
+        if(page->GetFirstTupleRid(&next_id)){
+            row_.destroy();
+            row_.SetRowId(next_id);
+            page->GetTuple(&row_,table_heap_->schema_,txn_,table_heap_->lock_manager_);
+            page->RUnlatch();
+            table_heap_->buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
+            return *this;
+        }
+    }
+    page->RUnlatch();
+    table_heap_->buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
+    *this = table_heap_->End();
+    return *this;
 }
 
 // iter++

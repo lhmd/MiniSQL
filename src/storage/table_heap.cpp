@@ -50,32 +50,34 @@ bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
 /**
  * TODO: Student Implement
  */
-bool TableHeap::UpdateTuple(const Row &row, const RowId &rid, Transaction *txn) {
+bool TableHeap::UpdateTuple(Row &row, const RowId &rid, Transaction *txn) {
 	if(row.GetSerializedSize(schema_) >= PAGE_SIZE) return false;
 	// Find the page which contains the tuple.
 	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
 	// If the page could not be found, then abort the transaction.
 	if(page == nullptr) return false;
 	// Otherwise, update the tuple.
-	Row old_row;
+	Row old_row(rid);
 	page->WLatch();
 	TablePage::result_of_update ret = page->TablePage::UpdateTuple(row, &old_row, schema_, txn, lock_manager_, log_manager_);
 	if(ret == TablePage::result_of_update::success) {
-		MarkDelete(rid, txn);
-		InsertTuple(old_row, txn);
+//		MarkDelete(rid, txn);
+//		InsertTuple(old_row, txn);
 		page->WUnlatch();
 		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
 		return true;
 	}
 	else if(ret == TablePage::result_of_update::invalid_slot_num) {
 		page->WUnlatch();
-		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
 		return false;
 	}
 	else if(ret == TablePage::result_of_update::not_enough_space) {
-		page->WUnlatch();
-		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
-		return false;
+        page->ApplyDelete(rid,txn,log_manager_);
+        page->WUnlatch();
+        buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+        //返回插入的结果
+        return InsertTuple(row,txn);
 	}
 }
 
@@ -131,21 +133,23 @@ void TableHeap::DeleteTable(page_id_t page_id) {
  * TODO: Student Implement
  */
 TableIterator TableHeap::Begin(Transaction *txn) {
-	RowId rid(first_page_id_, 0);
-	page_id_t page_id = first_page_id_;
-	while(page_id != INVALID_PAGE_ID) {
-		auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
-		page->RLatch();
-		if(page->GetFirstTupleRid(&rid)) {
-			page->RUnlatch();
-			buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
-			return TableIterator(this, rid, txn);
-		}
-		page->RUnlatch();
-		buffer_pool_manager_->UnpinPage(page->GetTablePageId(), false);
-		page_id = page->GetNextPageId();
-	}
-	return TableIterator(this, rid, txn);
+    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
+    if (page == nullptr) {
+        return End();
+    }
+    RowId first_row_id;
+    page->RLatch();
+    if(page->GetFirstTupleRid(&first_row_id)){
+        Row* row = new Row(first_row_id);
+        page->GetTuple(row,schema_,txn,lock_manager_);
+        page->RUnlatch();
+        buffer_pool_manager_->UnpinPage(first_page_id_, false);
+        return TableIterator(this,*row,txn);
+    } else {
+        page->RUnlatch();
+    }
+
+    return End();
 }
 
 /**

@@ -1,53 +1,75 @@
 #include "catalog/catalog.h"
 
 void CatalogMeta::SerializeTo(char *buf) const {
+    uint32_t mask = 0;
     ASSERT(GetSerializedSize() <= PAGE_SIZE, "Failed to serialize catalog metadata to disk.");
     MACH_WRITE_UINT32(buf, CATALOG_METADATA_MAGIC_NUM);
+    mask ^= CATALOG_METADATA_MAGIC_NUM;
     buf += 4;
     MACH_WRITE_UINT32(buf, table_meta_pages_.size());
+    mask ^= table_meta_pages_.size();
     buf += 4;
     MACH_WRITE_UINT32(buf, index_meta_pages_.size());
+    mask ^= index_meta_pages_.size();
     buf += 4;
     for (auto iter : table_meta_pages_) {
         MACH_WRITE_TO(table_id_t, buf, iter.first);
+        mask ^= iter.first;
         buf += 4;
         MACH_WRITE_TO(page_id_t, buf, iter.second);
+        mask ^= iter.second;
         buf += 4;
     }
     for (auto iter : index_meta_pages_) {
         MACH_WRITE_TO(index_id_t, buf, iter.first);
+        mask ^= iter.first;
         buf += 4;
         MACH_WRITE_TO(page_id_t, buf, iter.second);
+        mask ^= iter.second;
         buf += 4;
     }
+    MACH_WRITE_UINT32(buf, mask);
+    buf += 4;
 }
 
 CatalogMeta *CatalogMeta::DeserializeFrom(char *buf) {
+    uint32_t mask_cal = 0;
     // check valid
     uint32_t magic_num = MACH_READ_UINT32(buf);
+    mask_cal ^= magic_num;
     buf += 4;
     ASSERT(magic_num == CATALOG_METADATA_MAGIC_NUM, "Failed to deserialize catalog metadata from disk.");
     // get table and index nums
     uint32_t table_nums = MACH_READ_UINT32(buf);
+    mask_cal ^= table_nums;
     buf += 4;
     uint32_t index_nums = MACH_READ_UINT32(buf);
+    mask_cal ^= index_nums;
     buf += 4;
     // create metadata and read value
     CatalogMeta *meta = new CatalogMeta();
     for (uint32_t i = 0; i < table_nums; i++) {
         auto table_id = MACH_READ_FROM(table_id_t, buf);
+        mask_cal ^= table_id;
         buf += 4;
         auto table_heap_page_id = MACH_READ_FROM(page_id_t, buf);
+        mask_cal ^= table_heap_page_id;
         buf += 4;
         meta->table_meta_pages_.emplace(table_id, table_heap_page_id);
     }
     for (uint32_t i = 0; i < index_nums; i++) {
         auto index_id = MACH_READ_FROM(index_id_t, buf);
+        mask_cal ^= index_id;
         buf += 4;
         auto index_page_id = MACH_READ_FROM(page_id_t, buf);
+        mask_cal ^= index_page_id;
         buf += 4;
         meta->index_meta_pages_.emplace(index_id, index_page_id);
     }
+    uint32_t mask_get;
+    mask_get = MACH_READ_UINT32(buf);
+    buf += 4;
+    ASSERT(mask_get == mask_cal, "Failed to deserialize catalog metadata from disk cause getting error mask.");
     return meta;
 }
 
@@ -55,7 +77,11 @@ CatalogMeta *CatalogMeta::DeserializeFrom(char *buf) {
  * TODO: Student Implement
  */
 uint32_t CatalogMeta::GetSerializedSize() const {
-	return 12 + ((table_meta_pages_.size() + index_meta_pages_.size()) >> 3);
+    uint32_t result = 0;
+    result += sizeof(uint32_t) * 3;
+    result += sizeof(uint32_t) * 2 * table_meta_pages_.size();
+    result += sizeof(uint32_t) * 2 * index_meta_pages_.size();
+    return result;
 }
 
 CatalogMeta::CatalogMeta() {}
@@ -66,41 +92,56 @@ CatalogMeta::CatalogMeta() {}
 CatalogManager::CatalogManager(BufferPoolManager *buffer_pool_manager, LockManager *lock_manager,
                                LogManager *log_manager, bool init)
     : buffer_pool_manager_(buffer_pool_manager), lock_manager_(lock_manager), log_manager_(log_manager) {
-	std::atomic_init(&next_table_id_, 0);
-	std::atomic_init(&next_index_id_, 0);
+//	std::atomic_init(&next_table_id_, 0);
+//	std::atomic_init(&next_index_id_, 0);
 	if (init) {
-		// create catalog meta page
 		catalog_meta_ = CatalogMeta::NewInstance();
+		FlushCatalogMetaPage();
 	} else {
-		// load catalog meta page
-		auto meta_page = buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID);
-		catalog_meta_ = CatalogMeta::DeserializeFrom(meta_page->GetData());
-		// load table meta pages
-		for (auto iter : catalog_meta_->table_meta_pages_) {
-			auto table_page = buffer_pool_manager_->FetchPage(iter.second);
-			TableMetadata *table_meta = nullptr;
-			TableMetadata::DeserializeFrom(table_page->GetData(), table_meta);
-			auto table_heap = TableHeap::Create(
-					buffer_pool_manager_,
-					table_meta->GetFirstPageId(),
-					table_meta->GetSchema(),
-					log_manager_,
-					lock_manager_);
-			TableInfo *table_info = TableInfo::Create();
-			table_info->Init(table_meta, table_heap);
-			table_names_.emplace(table_meta->GetTableName(), table_meta->GetTableId());
-			tables_.emplace(table_meta->GetTableId(), table_info);
+		catalog_meta_ = CatalogMeta::DeserializeFrom(buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID)->GetData());
+		// Get tables info.
+		for (auto [tid, pid] : catalog_meta_->table_meta_pages_) {
+			// Get meta data from buffer pool.
+			TableMetadata * table_meta;
+			TableMetadata::DeserializeFrom(buffer_pool_manager_->FetchPage(pid)->GetData(), table_meta);
+			TableHeap * table_heap = TableHeap::Create(buffer_pool_manager_, table_meta->GetFirstPageId(), table_meta->GetSchema(), log_manager_, lock_manager_);
 
+			// Create table info.
+			TableInfo * table_info = TableInfo::Create();
+			table_info->Init(table_meta, table_heap);
+			// Insert into catalog.
+			tables_[tid] = table_info;
+			table_names_[table_meta->GetTableName()] = tid;
 		}
-		// load index meta pages
-		for (auto iter : catalog_meta_->index_meta_pages_) {
-			auto index_page = buffer_pool_manager_->FetchPage(iter.second);
-			IndexMetadata *index_meta = nullptr;
-			IndexMetadata::DeserializeFrom(index_page->GetData(), index_meta);
-			IndexInfo *index_info = IndexInfo::Create();
-			index_info->Init(index_meta, tables_[index_meta->GetTableId()], buffer_pool_manager_);
-			index_names_[tables_[index_meta->GetTableId()]->GetTableName()][index_meta->GetIndexName()] = index_meta->GetIndexId();
-			indexes_[index_meta->GetIndexId()] = index_info;
+		// Get indexes info.
+		for (auto it : catalog_meta_->index_meta_pages_) {
+			// Get meta data from buffer pool.
+			index_id_t iid = it.first;
+			page_id_t  pid = it.second;
+			IndexMetadata * index_meta;
+			IndexMetadata::DeserializeFrom(buffer_pool_manager_->FetchPage(pid)->GetData(), index_meta);
+			// Create index info.
+			table_id_t tid = index_meta->GetTableId();
+			TableInfo * table_info = tables_.at(tid);
+			ASSERT(table_info != nullptr, "Table info should not be null.");
+			IndexInfo * index_info = IndexInfo::Create();
+
+			// INDEX TYPE SET
+			// index_info->Init(index_meta, table_info, buffer_pool_manager, "hash");
+
+			index_info->Init(index_meta, table_info, buffer_pool_manager);
+
+			// Insert into catalog.
+			indexes_.emplace(iid, index_info);
+			string iname = index_meta->GetIndexName();
+			string tname = table_info->GetTableName();
+			if (index_names_.find(tname) != index_names_.end()) {
+				index_names_[tname].emplace(iname, iid);
+			} else {
+				// If `tname` table has not inserted yet, create a new map.
+				index_names_.emplace(tname, unordered_map<string, index_id_t>());
+				index_names_[tname].emplace(iname, iid);
+			}
 		}
 	}
 }
@@ -153,9 +194,20 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
  * TODO: Student Implement
  */
 dberr_t CatalogManager::GetTable(const string &table_name, TableInfo *&table_info) {
-	if(table_names_.find(table_name) == table_names_.end()) return DB_TABLE_NOT_EXIST;
-	table_info = tables_[table_names_[table_name]];
-	return DB_SUCCESS;
+    // Check if the table exists.
+    if (table_names_.find(table_name) == table_names_.end()) {
+        // Not found.
+        return DB_TABLE_NOT_EXIST;
+    }
+    table_id_t tid = table_names_[table_name];
+    // Get table_info with table_id.
+    if (tables_.find(tid) == tables_.end()) {
+        // Not found.
+        LOG(ERROR) << "Error happens when trying to get table_info with existed table_id!";
+        return DB_FAILED;
+    }
+    table_info = tables_[tid];
+    return DB_SUCCESS;
 }
 
 /**
@@ -227,11 +279,19 @@ dberr_t CatalogManager::GetIndex(const std::string &table_name, const std::strin
  * TODO: Student Implement
  */
 dberr_t CatalogManager::GetTableIndexes(const std::string &table_name, std::vector<IndexInfo *> &indexes) const {
-	if(table_names_.find(table_name) == table_names_.end()) return DB_TABLE_NOT_EXIST;
-	for(auto iter : index_names_.at(table_name)) {
-		indexes.push_back(indexes_.at(iter.second));
-	}
-	return DB_SUCCESS;
+    // Check if the table name exists.
+    if (index_names_.find(table_name) == index_names_.end()) {
+        return DB_TABLE_NOT_EXIST;
+    }
+    // Make sure the indexes vector is empty.
+    indexes.resize(0);
+    // Get all indexes of the table.
+    auto & table_indexes_name_ = index_names_.at(table_name);
+    for (auto it : table_indexes_name_) {
+        index_id_t iid = it.second;
+        indexes.push_back(indexes_.at(iid));
+    }
+    return DB_SUCCESS;
 }
 
 /**
@@ -335,7 +395,9 @@ dberr_t CatalogManager::LoadIndex(const index_id_t index_id, const page_id_t pag
  * TODO: Student Implement
  */
 dberr_t CatalogManager::GetTable(const table_id_t table_id, TableInfo *&table_info) {
-	if(tables_.find(table_id) == tables_.end()) return DB_TABLE_NOT_EXIST;
-	table_info = tables_[table_id];
-	return DB_SUCCESS;
+    if (tables_.find(table_id) == tables_.end()) {
+        return DB_TABLE_NOT_EXIST;
+    }
+    table_info = tables_.at(table_id);
+    return DB_SUCCESS;
 }

@@ -20,8 +20,12 @@ void InitGoogleLog(char *argv) {
 }
 
 void InputCommand(char *input, const int len) {
+    static int cnt = 0;
   memset(input, 0, len);
-  printf("minisql > ");
+  printf("minisql %d > ", cnt++);
+  if(cnt == 1018) {
+	  printf("go");
+  }
   int i = 0;
   char ch;
   while ((ch = getchar()) != ';') {
