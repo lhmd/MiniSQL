@@ -5,6 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "buffer/clock_replacer.h"
 #include "buffer/lru_replacer.h"
 #include "page/disk_file_meta_page.h"
 #include "page/page.h"

@@ -66,7 +66,7 @@ page_id_t DiskManager::AllocatePage() {
     ReadPhysicalPage(meta_flag * (BITMAP_SIZE + 1) + 1, buffer);
     BitmapPage<PAGE_SIZE> *bitmap_page = reinterpret_cast<BitmapPage<PAGE_SIZE> *>(buffer);
     //		for(page_flag = 0; page_flag < bitmap_page->GetMaxSupportedSize(); ++page_flag)
-    //if(bitmap_page->IsPageFree(page_flag)) break;
+    // if(bitmap_page->IsPageFree(page_flag)) break;
     ++meta_page->extent_used_page_[meta_flag];
     ++meta_page->num_allocated_pages_;
     bitmap_page->AllocatePage(page_flag);

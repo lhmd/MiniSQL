@@ -40,8 +40,8 @@ class CLOCKReplacer : public Replacer {
 
  private:
   size_t capacity;
-  list<frame_id_t> clock_list;               // replacer中可以被替换的数据页
-  map<frame_id_t, frame_id_t> clock_status;  // 数据页的存储状态
+  size_t clock_hand;                                // replacer中可以被替换的数据页
+  std::vector<std::pair<bool, bool>> clock_status;  // 数据页的存储状态: 是否pin以及ref情况
 };
 
 #endif  // MINISQL_CLOCK_REPLACER_H
